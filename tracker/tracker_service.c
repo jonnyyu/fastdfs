@@ -2548,7 +2548,7 @@ static int tracker_deal_service_query_storage( \
 	if (cmd == TRACKER_PROTO_CMD_SERVICE_QUERY_STORE_WITH_GROUP_ONE
 	  || cmd == TRACKER_PROTO_CMD_SERVICE_QUERY_STORE_WITHOUT_GROUP_ONE)
 	{
-		pStorageServer = tracker_get_writable_storage(pStoreGroup);
+		pStorageServer = tracker_get_writable_storage(pTask->client_ip, pStoreGroup);
 		if (pStorageServer == NULL)
 		{
 			pTask->length = sizeof(TrackerHeader);

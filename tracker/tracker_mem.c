@@ -5352,10 +5352,50 @@ int tracker_mem_offline_store_server(FDFSGroupInfo *pGroup, \
 	return tracker_mem_deactive_store_server(pGroup, pStorage);
 }
 
-FDFSStorageDetail *tracker_get_writable_storage(FDFSGroupInfo *pStoreGroup)
+static unsigned int distance_between(char* client_ip, char* storage_ip)
 {
-	int write_server_index;
-	if (g_groups.store_server == FDFS_STORE_SERVER_ROUND_ROBIN)
+        int i = 0;
+        struct in_addr client_addr, storage_addr;
+        in_addr_t diff;
+
+        do {
+
+            if (inet_pton(AF_INET, client_ip, &client_addr) != 1)
+                break;
+
+            if (inet_pton(AF_INET, storage_ip, &storage_addr) != 1)
+                break;
+
+            diff = client_addr.s_addr ^ storage_addr.s_addr;
+            if ((diff & 0xffff) == 0) {
+                    i += 16;
+                    diff >>= 16;
+            }
+            if ((diff & 0xff) == 0) {
+                    i += 8;
+                    diff >>= 8;
+            }
+        }while(0);
+
+        return sizeof(in_addr_t) * 8 - i;
+}
+
+
+FDFSStorageDetail *tracker_get_writable_storage(char *client_ip, FDFSGroupInfo *pStoreGroup)
+{
+	int write_server_index = 0;
+	int type = g_groups.store_server;
+	int i = 0;
+	unsigned int distance = (unsigned int)-1;
+	unsigned int min_distance = (unsigned int)-1;
+
+	// fall back to round-robin if client_ip is not specified
+	if (type == FDFS_STORE_SERVER_FIRST_BY_IP && client_ip == NULL)
+	{
+		type = FDFS_STORE_SERVER_ROUND_ROBIN;
+	}
+	
+	if (type == FDFS_STORE_SERVER_ROUND_ROBIN)
 	{
 		write_server_index = pStoreGroup->current_write_server++;
 		if (pStoreGroup->current_write_server >= \
@@ -5369,6 +5409,20 @@ FDFSStorageDetail *tracker_get_writable_storage(FDFSGroupInfo *pStoreGroup)
 			write_server_index = 0;
 		}
 		return  *(pStoreGroup->active_servers + write_server_index);
+	}
+	if (type == FDFS_STORE_SERVER_FIRST_BY_IP)
+	{
+		for (i = 0; i < pStoreGroup->active_count; i++)
+		{
+			distance = distance_between(client_ip, pStoreGroup->active_servers[i]->ip_addr);
+			if (distance < min_distance)
+			{
+				min_distance = distance;
+				write_server_index = i;
+			}
+		}
+
+		return *(pStoreGroup->active_servers + write_server_index);
 	}
 	else //use the first server
 	{
@@ -5763,19 +5817,19 @@ int tracker_mem_get_storage_by_filename(const byte cmd,FDFS_DOWNLOAD_TYPE_PARAM\
 	{
 		if (storage_ip != INADDR_NONE)
 		{
-      if (*storage_id != '\0')
-      {
+		      if (*storage_id != '\0')
+		      {
 			pStoreSrcServer=tracker_mem_get_active_storage_by_id(\
 					*ppGroup, storage_id);
-      }
-      else
-      {
+			}
+		      else
+		      {
 			memset(&ip_addr, 0, sizeof(ip_addr));
 			ip_addr.s_addr = storage_ip;
 			pStoreSrcServer=tracker_mem_get_active_storage_by_ip(\
 					*ppGroup, inet_ntop(AF_INET, &ip_addr, \
 					szIpAddr, sizeof(szIpAddr)));
-      }
+		      }
 
 			if (pStoreSrcServer != NULL)
 			{
@@ -5785,7 +5839,7 @@ int tracker_mem_get_storage_by_filename(const byte cmd,FDFS_DOWNLOAD_TYPE_PARAM\
 			}
 		}
 
-		ppStoreServers[0] = tracker_get_writable_storage(*ppGroup);
+		ppStoreServers[0] = tracker_get_writable_storage(NULL, *ppGroup);
 		*server_count = ppStoreServers[0] != NULL ? 1 : 0;
 	}
 	else //TRACKER_PROTO_CMD_SERVICE_QUERY_FETCH_ALL

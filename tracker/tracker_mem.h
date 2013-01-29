@@ -93,7 +93,7 @@ int tracker_get_group_success_upload_count(FDFSGroupInfo *pGroup);
 FDFSStorageDetail *tracker_get_group_sync_src_server(FDFSGroupInfo *pGroup, \
 			FDFSStorageDetail *pDestServer);
 
-FDFSStorageDetail *tracker_get_writable_storage(FDFSGroupInfo *pStoreGroup);
+FDFSStorageDetail *tracker_get_writable_storage(char* client_ip, FDFSGroupInfo *pStoreGroup);
 
 #ifdef WITH_HTTPD
 #define FDFS_DOWNLOAD_TYPE_PARAM  	const int download_type, 
