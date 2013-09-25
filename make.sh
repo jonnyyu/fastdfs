@@ -1,3 +1,4 @@
+#!/bin/sh
 tmp_src_filename=fdfs_check_bits.c
 cat <<EOF > $tmp_src_filename
 #include <stdio.h>
