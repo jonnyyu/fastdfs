@@ -1,4 +1,11 @@
 
+Version 4.06  2013-01-24
+ * fdfs_upload_file tool enhancement
+ * fdfs_download_file tool support offset and download size
+ * trunk file upload support sub paths rotating correctly
+ * add function: fdfs_http_get_file_extension
+ * sync truncate file operation anyway
+
 Version 4.05  2012-12-30
  * client/fdfs_upload_file.c can specify storage ip port and store path index
  * add connection pool

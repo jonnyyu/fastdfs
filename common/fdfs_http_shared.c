@@ -22,46 +22,64 @@
 #include "md5.h"
 #include "shared_func.h"
 #include "mime_file_parser.h"
+#include "fdfs_global.h"
 #include "fdfs_http_shared.h"
 
-int fdfs_http_get_content_type_by_extname(FDFSHTTPParams *pParams, \
-	const char *filename, char *content_type, const int content_type_size)
+const char *fdfs_http_get_file_extension(const char *filename, \
+		const int filename_len, int *ext_len)
 {
-	char *pExtName;
-	HashData *pHashData;
-	int  ext_len;
+	const char *pEnd;
+	const char *pExtName;
+	int i;
 
-	pExtName = strrchr(filename, '.');
-	if (pExtName == NULL)
+	pEnd = filename + filename_len;
+	pExtName = pEnd - 1;
+	for (i=0; i<FDFS_FILE_EXT_NAME_MAX_LEN && pExtName >= filename; \
+		i++, pExtName--)
 	{
-		logWarning("file: "__FILE__", line: %d, " \
-			"file: %s does not have extension name, " \
-			"set to default content type: %s", \
-			__LINE__, filename, pParams->default_content_type);
-		strcpy(content_type, pParams->default_content_type);
-		return 0;
+		if (*pExtName == '.')
+		{
+			break;
+		}
 	}
 
-	pExtName++;
-	ext_len = strlen(pExtName);
+	if (i < FDFS_FILE_EXT_NAME_MAX_LEN) //found
+	{
+		pExtName++;  //skip .
+		*ext_len = pEnd - pExtName;
+		return pExtName;
+	}
+	else
+	{
+		*ext_len = 0;
+		return NULL;
+	}
+}
+
+int fdfs_http_get_content_type_by_extname(FDFSHTTPParams *pParams, \
+	const char *ext_name, const int ext_len, \
+	char *content_type, const int content_type_size)
+{
+	HashData *pHashData;
+
 	if (ext_len == 0)
 	{
 		logWarning("file: "__FILE__", line: %d, " \
-			"file: %s 's extension name is empty, " \
+			"extension name is empty, " \
 			"set to default content type: %s", \
-			__LINE__, filename, pParams->default_content_type);
+			__LINE__, pParams->default_content_type);
 		strcpy(content_type, pParams->default_content_type);
 		return 0;
 	}
 
 	pHashData = hash_find_ex(&pParams->content_type_hash, \
-				pExtName, ext_len + 1);
+				ext_name, ext_len + 1);
 	if (pHashData == NULL)
 	{
 		logWarning("file: "__FILE__", line: %d, " \
-			"file: %s 's extension name is not supported, " \
+			"extension name: %s is not supported, " \
 			"set to default content type: %s", \
-			__LINE__, filename, pParams->default_content_type);
+			__LINE__, ext_name, pParams->default_content_type);
 		strcpy(content_type, pParams->default_content_type);
 		return 0;
 	}
@@ -70,8 +88,8 @@ int fdfs_http_get_content_type_by_extname(FDFSHTTPParams *pParams, \
 	{
 		*content_type = '\0';
 		logError("file: "__FILE__", line: %d, " \
-			"file: %s, extension name 's content type " \
-			"is too long", __LINE__, filename);
+			"extension name: %s 's content type " \
+			"is too long", __LINE__, ext_name);
 		return EINVAL;
 	}
 
@@ -83,6 +101,8 @@ int fdfs_http_params_load(IniContext *pIniContext, \
 		const char *conf_filename, FDFSHTTPParams *pParams)
 {
 	int result;
+	int ext_len;
+	const char *ext_name;
 	char *mime_types_filename;
 	char szMimeFilename[256];
 	char *anti_steal_secret_key;
@@ -245,8 +265,10 @@ int fdfs_http_params_load(IniContext *pIniContext, \
 		return ENOENT;
 	}
 
+	ext_name = fdfs_http_get_file_extension(token_check_fail_filename, \
+		strlen(token_check_fail_filename), &ext_len);
 	if ((result=fdfs_http_get_content_type_by_extname(pParams, \
-			token_check_fail_filename, \
+			ext_name, ext_len, \
 			pParams->token_check_fail_content_type, \
 			sizeof(pParams->token_check_fail_content_type))) != 0)
 	{

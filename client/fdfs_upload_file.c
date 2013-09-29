@@ -33,7 +33,7 @@ int main(int argc, char *argv[])
 	ConnectionInfo storageServer;
 	char file_id[128];
 	
-	if (argc < 3 || argc == 4)
+	if (argc < 3)
 	{
 		usage(argv);
 		return 1;
@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
 
 	local_filename = argv[2];
 	*group_name = '\0';
-	if (argc >= 5)
+	if (argc >= 4)
 	{
 		const char *pPort;
 		const char *pIpAndPort;
@@ -77,7 +77,14 @@ int main(int argc, char *argv[])
 		snprintf(storageServer.ip_addr, sizeof(storageServer.ip_addr), \
 			 "%.*s", (int)(pPort - pIpAndPort), pIpAndPort);
 		storageServer.port = atoi(pPort + 1);
-		store_path_index = atoi(argv[4]);
+		if (argc >= 5)
+		{
+			store_path_index = atoi(argv[4]);
+		}
+		else
+		{
+			store_path_index = -1;
+		}
 	}
 	else if ((result=tracker_query_storage_store(pTrackerServer, \
 	                &storageServer, group_name, &store_path_index)) != 0)

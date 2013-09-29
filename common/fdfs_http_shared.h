@@ -91,17 +91,31 @@ return: param value pointer, return NULL if not exist
 char *fdfs_http_get_parameter(const char *param_name, KeyValuePair *params, \
 		const int param_count);
 
+
+/**
+get file extension name
+params:
+	filename: the filename
+	filename_len: the length of filename
+	ext_len: return the length of extension name
+return: extension name, NULL for none
+**/
+const char *fdfs_http_get_file_extension(const char *filename, \
+		const int filename_len, int *ext_len);
+
 /**
 get content type by file extension name
 params:
 	pHTTPParams: the HTTP params
-	filename: the filename
+	ext_name: the extension name 
+	ext_len: the length of extension name
 	content_type: return content type
 	content_type_size: content type buffer size
 return: 0 for success, != 0 fail
 **/
 int fdfs_http_get_content_type_by_extname(FDFSHTTPParams *pParams, \
-	const char *filename, char *content_type, const int content_type_size);
+	const char *ext_name, const int ext_len, \
+	char *content_type, const int content_type_size);
 
 #ifdef __cplusplus
 }
