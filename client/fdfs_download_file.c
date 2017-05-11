@@ -24,11 +24,14 @@ int main(int argc, char *argv[])
 	int result;
 	char file_id[128];
 	int64_t file_size;
+	int64_t file_offset;
+	int64_t download_bytes;
 	
 	if (argc < 3)
 	{
 		printf("Usage: %s <config_file> <remote file id> " \
-			"[local filename]\n", argv[0]);
+			"[local filename] [<download_offset> " \
+			"<download_bytes>]\n", argv[0]);
 		return 1;
 	}
 
@@ -50,9 +53,16 @@ int main(int argc, char *argv[])
 
 	snprintf(file_id, sizeof(file_id), "%s", argv[2]);
 
+	file_offset = 0;
+	download_bytes = 0;
 	if (argc >= 4)
 	{
 		local_filename = argv[3];
+		if (argc >= 6)
+		{
+			file_offset = strtoll(argv[4], NULL, 10);
+			download_bytes = strtoll(argv[5], NULL, 10);
+		}
 	}
 	else
 	{
@@ -67,9 +77,10 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	result = storage_download_file_to_file1( \
-			pTrackerServer, NULL, \
-			file_id, local_filename, &file_size);
+	result = storage_do_download_file1_ex(pTrackerServer, \
+                NULL, FDFS_DOWNLOAD_TO_FILE, file_id, \
+                file_offset, download_bytes, \
+                &local_filename, NULL, &file_size);
 	if (result != 0)
 	{
 		printf("download file fail, " \
